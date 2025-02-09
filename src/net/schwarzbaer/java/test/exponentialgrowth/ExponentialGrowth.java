@@ -55,10 +55,10 @@ public class ExponentialGrowth
 		data = new Vector<>();
 		tableModel = new ExponentialGrowthTableModel(data);
 		table = new JTable(tableModel);
+		tableModel.setTable(table);
 		table.setRowSorter(new Tables.SimplifiedRowSorter(tableModel));
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-		tableModel.setTable(table);
 		tableModel.setColumnWidths(table);
 		tableModel.setDefaultCellEditorsAndRenderers();
 		

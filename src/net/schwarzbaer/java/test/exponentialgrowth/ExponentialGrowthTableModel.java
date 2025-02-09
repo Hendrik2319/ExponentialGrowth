@@ -58,13 +58,13 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	@Override
 	public void setDefaultCellEditorsAndRenderers()
 	{
-		ExponentialGrowthTableCellRenderer cellRenderer = new ExponentialGrowthTableCellRenderer(this);
+		ExponentialGrowthTableCellRenderer cellRenderer = new ExponentialGrowthTableCellRenderer(table, this);
 		setDefaultRenderers( clazz -> cellRenderer );
 		table.setDefaultEditor(ExpFactor.class, new Tables.ComboboxCellEditor<>(ExpFactor.values()));
 	}
 
 	@Override
-	protected boolean isCellEditable(int rowIndex, int columnIndex, ColumnID columnID)
+	public boolean isCellEditable(int rowIndex, int columnIndex, ColumnID columnID)
 	{
 		if (rowIndex > rows.size())
 			return false;

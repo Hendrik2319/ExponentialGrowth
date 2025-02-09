@@ -13,13 +13,32 @@ import net.schwarzbaer.java.test.exponentialgrowth.ExponentialGrowthTableModel.C
 
 class ExponentialGrowthTableCellRenderer implements TableCellRenderer 
 {
+	private static final Color TEXT_COLOR_GRAY = new Color(0xB1B1B1);
+	private static final Color[] BG_COLORS = {
+			new Color(0xcfffcf),
+			new Color(0xffffd5),
+			new Color(0xe0f6ff),
+			new Color(0xffeeee),
+	};
 	private final Tables.LabelRendererComponent rendComp;
 	private final ExponentialGrowthTableModel tableModel;
 	
-	ExponentialGrowthTableCellRenderer(ExponentialGrowthTableModel tableModel)
+	ExponentialGrowthTableCellRenderer(JTable table, ExponentialGrowthTableModel tableModel)
 	{
 		this.tableModel = tableModel;
 		rendComp = new Tables.LabelRendererComponent();
+	}
+
+	private Supplier<Color> getBackground(ColumnID columnID, int rowM)
+	{
+		if (columnID==null)
+			return null;
+		return switch (columnID)
+		{
+			case CurrentAmount, CurrentAmountUnit -> () -> BG_COLORS[ rowM % BG_COLORS.length ];
+			case GrowthRate_per_s, GrowthRateUnit -> rowM==0 ? null : () -> BG_COLORS[ (rowM + BG_COLORS.length - 1) % BG_COLORS.length ];
+			default -> null;
+		};
 	}
 
 	@Override
@@ -32,6 +51,8 @@ class ExponentialGrowthTableCellRenderer implements TableCellRenderer
 		
 		String valueStr = value==null ? null : value.toString();
 		int horizontalAlignment = SwingConstants.LEFT;
+		Supplier<Color> getCustomBackground = getBackground(columnID, rowM);
+		Supplier<Color> getCustomForeground = null;
 		
 		if (columnID!=null)
 		{
@@ -43,8 +64,12 @@ class ExponentialGrowthTableCellRenderer implements TableCellRenderer
 			horizontalAlignment = columnID.cfg.horizontalAlignment;
 		}
 		
-		Supplier<Color> getCustomBackground = ()->null;
-		rendComp.configureAsTableCellRendererComponent(table, null, valueStr, isSelected, hasFocus, getCustomBackground, null);
+		if (!tableModel.isCellEditable(rowM, columnM, columnID))
+		{
+			getCustomForeground = () -> TEXT_COLOR_GRAY;
+		}
+		
+		rendComp.configureAsTableCellRendererComponent(table, null, valueStr, isSelected, hasFocus, getCustomBackground, getCustomForeground);
 		rendComp.setHorizontalAlignment(horizontalAlignment);
 		
 		return rendComp;
