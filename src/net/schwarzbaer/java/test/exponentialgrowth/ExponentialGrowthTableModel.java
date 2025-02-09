@@ -15,9 +15,9 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	{
 		Index            ( config("#"                , Integer  .class,  30, CENTER).setValFunc( row -> row.index )),
 		CurrentAmount    ( config("Current Amount"   , Double   .class, 100, null  ).setValFunc( row -> row.currentAmount ).setToString(d -> String.format(Locale.ENGLISH, "%1.3f", d))),
-		CurrentAmountUnit( config("Unit"             , ExpFactor.class,  30, null  ).setValFunc( row -> row.currentAmountUnit )),
+		CurrentAmountUnit( config("Unit"             , ExpFactor.class,  40, null  ).setValFunc( row -> row.currentAmountUnit )),
 		GrowthRate_per_s ( config("Growth Rate (1/s)", Double   .class, 100, null  ).setValFunc( row -> row.growthRate_per_s ).setToString(d -> String.format(Locale.ENGLISH, "%1.3f", d))),
-		GrowthRateUnit   ( config("Unit"             , ExpFactor.class,  30, null  ).setValFunc( row -> row.growthRateUnit )),
+		GrowthRateUnit   ( config("Unit"             , ExpFactor.class,  40, null  ).setValFunc( row -> row.growthRateUnit )),
 		Ratio            ( config("Ratio"            , Double   .class, 100, null  ).setValFunc( row -> row.ratio ).setToString(d -> String.format(Locale.ENGLISH, "%1.3E", d))),
 		;
 		
@@ -33,11 +33,13 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	}
 	
 	private Vector<TableEntry> rows;
+	private boolean isEditingEnabled;
 
 	ExponentialGrowthTableModel(Vector<TableEntry> rows)
 	{
 		super(ColumnID.values(), rows);
 		this.rows = rows;
+		isEditingEnabled = true;
 	}
 
 	@Override
@@ -49,6 +51,11 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		super.setData(this.rows = rows);
 	}
 	
+	void setEditingEnabled(boolean isEditingEnabled)
+	{
+		this.isEditingEnabled = isEditingEnabled;
+	}
+
 	@Override
 	public int getRowCount()
 	{
@@ -66,6 +73,9 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex, ColumnID columnID)
 	{
+		if (!isEditingEnabled)
+			return false;
+		
 		if (rowIndex > rows.size())
 			return false;
 		

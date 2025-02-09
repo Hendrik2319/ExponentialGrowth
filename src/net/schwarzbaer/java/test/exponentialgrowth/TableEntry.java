@@ -3,11 +3,11 @@ package net.schwarzbaer.java.test.exponentialgrowth;
 class TableEntry
 {
 	final int index;
-	double currentAmount;
+	double    currentAmount;
 	ExpFactor currentAmountUnit;
-	double growthRate_per_s;
+	double    growthRate_per_s;
 	ExpFactor growthRateUnit;
-	double ratio;
+	double    ratio;
 	
 	TableEntry (int index) {
 		this.index = index;
@@ -16,6 +16,16 @@ class TableEntry
 		growthRate_per_s = 0;
 		growthRateUnit = ExpFactor._1;
 		updateRatio();
+	}
+
+	TableEntry(TableEntry other)
+	{
+		this.index             = other.index            ;
+		this.currentAmount     = other.currentAmount    ;
+		this.currentAmountUnit = other.currentAmountUnit;
+		this.growthRate_per_s  = other.growthRate_per_s ;
+		this.growthRateUnit    = other.growthRateUnit   ;
+		this.ratio             = other.ratio            ;
 	}
 
 	void updateRatio()

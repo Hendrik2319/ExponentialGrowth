@@ -18,6 +18,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JToolBar;
@@ -46,9 +47,15 @@ public class ExponentialGrowth
 	private final JTable table;
 	private final FileChooser fileChooser;
 	private final Vector<TableEntry> data;
+	private Simulation simulation;
+	private final ProgressPanel progressPanel;
+	private final JToolBar toolBar;
+	private final JPanel contentPane;
 	
 	private ExponentialGrowth()
 	{
+		simulation = null;
+		
 		mainWindow = new StandardMainWindow("ExponentialGrowth");
 		fileChooser = new FileChooser("Settings-File", "data");
 		
@@ -68,9 +75,14 @@ public class ExponentialGrowth
 		contextMenu.addTo(table, () -> ContextMenu.computeSurrogateMousePos(table, tableScrollPane, tableModel.getColumn(ExponentialGrowthTableModel.ColumnID.CurrentAmount)));
 		contextMenu.addTo(tableScrollPane);
 		
-		JToolBar toolBar = new JToolBar();
+		toolBar = new JToolBar();
 		toolBar.setFloatable(false);
 		
+		toolBar.add(createButton("New", e -> {
+			data.clear();
+			tableModel.setData(data);
+			tableModel.setEditingEnabled(true);
+		}));
 		toolBar.add(createButton("Open", e -> {
 			if (fileChooser.showOpenDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
 				loadSettings( fileChooser.getSelectedFile() );
@@ -82,6 +94,7 @@ public class ExponentialGrowth
 		toolBar.addSeparator();
 		toolBar.add(createButton("Initial Values", e->{
 			tableModel.setData(data);
+			tableModel.setEditingEnabled(true);
 		}));
 		toolBar.addSeparator();
 		toolBar.add(new JLabel("After: "));
@@ -94,22 +107,75 @@ public class ExponentialGrowth
 		toolBar.add(createButton("12 h"  , e -> simulate(   12* 60* 60) ));
 		toolBar.add(createButton("1 day" , e -> simulate(1* 24* 60* 60) ));
 		toolBar.add(createButton("2 day" , e -> simulate(2* 24* 60* 60) ));
+		toolBar.add(createButton("4 day" , e -> simulate(4* 24* 60* 60) ));
+		toolBar.add(createButton("8 day" , e -> simulate(8* 24* 60* 60) ));
 		
-		JPanel contentPane = new JPanel(new BorderLayout());
+		progressPanel = new ProgressPanel(this::stopSimulation);
+		
+		contentPane = new JPanel(new BorderLayout());
 		contentPane.add(toolBar, BorderLayout.PAGE_START);
 		contentPane.add(tableScrollPane, BorderLayout.CENTER);
 		
 		mainWindow.startGUI(contentPane);
 	}
+	
+	static class ProgressPanel extends JPanel
+	{
+		private static final long serialVersionUID = -1674771085401755479L;
+		
+		private final JProgressBar progressBar;
+
+		ProgressPanel(Runnable stopSimulationTask)
+		{
+			super(new BorderLayout());
+			progressBar = new JProgressBar();
+			add(progressBar, BorderLayout.CENTER);
+			add(createButton("Stop", e->stopSimulationTask.run()), BorderLayout.EAST);
+		}
+
+		void configureProgressBar(int min, int max)
+		{
+			progressBar.setMinimum(min);
+			progressBar.setMaximum(max);
+		}
+
+		void setProgressValue(int value)
+		{
+			progressBar.setValue(value);
+		}
+	}
 
 	private void initialize()
 	{
-		// TODO Auto-generated method stub
+		// TODO: initialize()
 	}
 
-	private void simulate(int time_s)
+	private synchronized void simulate(int time_s)
 	{
-		// TODO Auto-generated method stub
+		if (simulation!=null)
+			return;
+		
+		toolBar.setEnabled(false);
+		contentPane.add(progressPanel, BorderLayout.SOUTH);
+		mainWindow.pack();
+		
+		tableModel.setEditingEnabled(false);
+		Vector<TableEntry> data2 = new Vector<>( data.stream().map(TableEntry::new).toList() );
+		tableModel.setData(data2);
+		
+		simulation = new Simulation(time_s, data2, progressPanel, tableModel, () -> {
+			contentPane.remove(progressPanel);
+			mainWindow.pack();
+			toolBar.setEnabled(true);
+			simulation = null;
+		});
+		simulation.start();
+	}
+
+	private synchronized void stopSimulation()
+	{
+		if (simulation!=null)
+			simulation.stop();
 	}
 
 	private void loadSettings(File file)

@@ -13,7 +13,7 @@ import net.schwarzbaer.java.test.exponentialgrowth.ExponentialGrowthTableModel.C
 
 class ExponentialGrowthTableCellRenderer implements TableCellRenderer 
 {
-	private static final Color TEXT_COLOR_GRAY = new Color(0xB1B1B1);
+	private static final Color TEXT_COLOR_NOT_EDITABLE = new Color(0x0074C1);
 	private static final Color[] BG_COLORS = {
 			new Color(0xcfffcf),
 			new Color(0xffffd5),
@@ -31,8 +31,9 @@ class ExponentialGrowthTableCellRenderer implements TableCellRenderer
 
 	private Supplier<Color> getBackground(ColumnID columnID, int rowM)
 	{
-		if (columnID==null)
+		if (columnID==null || rowM<0)
 			return null;
+		
 		return switch (columnID)
 		{
 			case CurrentAmount, CurrentAmountUnit -> () -> BG_COLORS[ rowM % BG_COLORS.length ];
@@ -66,7 +67,7 @@ class ExponentialGrowthTableCellRenderer implements TableCellRenderer
 		
 		if (!tableModel.isCellEditable(rowM, columnM, columnID))
 		{
-			getCustomForeground = () -> TEXT_COLOR_GRAY;
+			getCustomForeground = () -> TEXT_COLOR_NOT_EDITABLE;
 		}
 		
 		rendComp.configureAsTableCellRendererComponent(table, null, valueStr, isSelected, hasFocus, getCustomBackground, getCustomForeground);
