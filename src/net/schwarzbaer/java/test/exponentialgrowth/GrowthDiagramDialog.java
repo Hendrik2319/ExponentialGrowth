@@ -1,7 +1,6 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.Window;
 
 import javax.swing.JPanel;
@@ -21,7 +20,6 @@ class GrowthDiagramDialog extends StandardDialog
 		
 		JPanel contentPane = new JPanel(new BorderLayout());
 		contentPane.add(growthDiagram, BorderLayout.CENTER);
-		contentPane.setPreferredSize(new Dimension(600,400));
 		
 		createGUI(contentPane, ExponentialGrowth.createButton("Close", e -> closeDialog() ));
 	}

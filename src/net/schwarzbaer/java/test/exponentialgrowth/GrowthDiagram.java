@@ -2,6 +2,7 @@ package net.schwarzbaer.java.test.exponentialgrowth;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -26,16 +27,19 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 	{
 		viewData = null;
 		
-		activateMapScale(COLOR_AXIS, "s", true);
+		activateMapScale(COLOR_AXIS, "s", false);
 		activateAxes(COLOR_AXIS, true,false,true,false);
 		//setAxesUnitScaling(double vertUnitScaling, double horizUnitScaling)
 		//addTextToMapScale(currentMousePos::getText);
+		
+		setPreferredSize(new Dimension(800,400));
 	}
 	
 	void setData(DataPointGroup[] data)
 	{
 		viewData = new ViewData(data);
 		viewData.buildDiagrams(viewState);
+		mapScale.setUnit(viewData.timeUnit);
 		reset();
 	}
 	
@@ -74,7 +78,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				
 				int[] xValues = viewData.timePoints==null ? null : Arrays
 					.stream( viewData.timePoints )
-					.map( viewState::convertPos_AngleToScreen_LongX )
+					.map( tp -> viewState.convertPos_AngleToScreen_LongX( tp/(double)viewData.timeScaling ) )
 					.toArray();
 				
 				if (viewData.diagrams!=null && xValues!=null)
@@ -107,7 +111,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		{
 			@Override protected void determineMinMax(MapLatLong min, MapLatLong max)
 			{
-				if (viewData==null || viewData.minTime==null || viewData.maxTime==null)
+				if (viewData==null || viewData.minTime==null || viewData.maxTime==null || viewData.diagrams==null)
 				{
 					min.longitude_x = 0.0;
 					min.latitude_y  = 0.0;
@@ -116,7 +120,9 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				}
 				else
 				{
-					min.longitude_x = viewData.minTime;
+					double extra = 0.0 + viewData.diagrams.length * 0.15;
+					//System.out.printf(Locale.ENGLISH, "determineMinMax: %1.2f%% extra width%n", extra*100);
+					min.longitude_x = viewData.minTime - (viewData.maxTime - viewData.minTime) * extra;
 					max.longitude_x = viewData.maxTime;
 					min.latitude_y  = 0.0;
 					max.latitude_y  = (viewData.maxTime - viewData.minTime) / WIDTH_TO_HEIGHT_RATIO;
@@ -156,6 +162,8 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		private double diagramBackgroundWidth;
 		private double diagramBackgroundHeight;
 		private int[] timePoints;
+		private int timeScaling;
+		private String timeUnit;
 
 		ViewData(DataPointGroup[] rawDataPoints)
 		{
@@ -166,6 +174,8 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			diagramBackgroundHeight = 0;
 			diagrams = null;
 			timePoints = null;
+			timeScaling = 1;
+			timeUnit = "s";
 		}
 
 		void updateAxes()
@@ -177,10 +187,14 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 
 		void buildDiagrams(ViewState viewState)
 		{
+			minTime = null;
+			maxTime = null;
 			diagramBackgroundWidth = 0;
 			diagramBackgroundHeight = 0;
 			diagrams = null;
 			timePoints = null;
+			timeScaling = 1;
+			timeUnit = "s";
 			
 			if (rawDataPoints == null || rawDataPoints.length <= 0)
 				return;
@@ -219,6 +233,8 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				minTime -= 50;
 				maxTime += 50;
 			}
+			else
+				computeTimeScalingAndUnit();
 			
 			this.diagrams = diagrams.toArray(DiagramData[]::new);
 			
@@ -229,6 +245,36 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				this.diagrams[i].finalizeData(computeDiagramColor(i, this.diagrams.length), viewState, diagramBackgroundHeight);
 		}
 		
+		private void computeTimeScalingAndUnit()
+		{
+			timeScaling = 1;
+			timeUnit = "s";
+			if (maxTime-minTime < 2000) return;
+			
+			maxTime /= 60;
+			minTime /= 60;
+			timeScaling = 60;
+			timeUnit = "min";
+			if (maxTime-minTime < 120) return;
+			
+			maxTime /= 60;
+			minTime /= 60;
+			timeScaling = 60*60;
+			timeUnit = "h";
+			if (maxTime-minTime < 48) return;
+			
+			maxTime /= 24;
+			minTime /= 24;
+			timeScaling = 60*60*24;
+			timeUnit = "d";
+			if (maxTime-minTime < 20) return;
+			
+			maxTime /= 7;
+			minTime /= 7;
+			timeScaling = 60*60*24*7;
+			timeUnit = "w";
+		}
+
 		private static Color computeDiagramColor(int index, int totalCount)
 		{
 			final float h;

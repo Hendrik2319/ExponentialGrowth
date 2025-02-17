@@ -94,8 +94,10 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	protected void setValueAt(Object aValue, int rowIndex, int columnIndex, ColumnID columnID)
 	{
 		final TableEntry row;
+		boolean rowIsNew = false;
 		if (rowIndex == rows.size()) {
 			rows.add(row = new TableEntry( rows.size() ));
+			rowIsNew = true;
 		} else
 			row = getRow(rowIndex);
 		
@@ -111,6 +113,8 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		case GrowthRateUnit    : row.growthRateUnit    = (ExpFactor)aValue; updateRatio(rowIndex, row); break;
 		case Ratio: break;
 		}
+		if (rowIsNew)
+			fireTableUpdate();
 	}
 
 	private void updateRatio(final int rowIndex, final TableEntry row)

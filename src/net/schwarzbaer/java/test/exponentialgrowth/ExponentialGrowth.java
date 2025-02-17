@@ -61,7 +61,7 @@ public class ExponentialGrowth
 		simulation = null;
 		computedValues = null;
 		
-		mainWindow = new StandardMainWindow("ExponentialGrowth");
+		mainWindow = new StandardMainWindow("Exponential Growth");
 		fileChooser = new FileChooser("Settings-File", "data");
 		
 		data = new Vector<>();
