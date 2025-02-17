@@ -31,6 +31,7 @@ import net.schwarzbaer.java.lib.gui.ContextMenu;
 import net.schwarzbaer.java.lib.gui.FileChooser;
 import net.schwarzbaer.java.lib.gui.StandardMainWindow;
 import net.schwarzbaer.java.lib.gui.Tables;
+import net.schwarzbaer.java.test.exponentialgrowth.GrowthDiagram.DataPointGroup;
 
 public class ExponentialGrowth
 {
@@ -52,10 +53,13 @@ public class ExponentialGrowth
 	private final ProgressPanel progressPanel;
 	private final JToolBar toolBar;
 	private final JPanel contentPane;
+	private final JButton btnShowDiagram;
+	private DataPointGroup[] computedValues;
 	
 	private ExponentialGrowth()
 	{
 		simulation = null;
+		computedValues = null;
 		
 		mainWindow = new StandardMainWindow("ExponentialGrowth");
 		fileChooser = new FileChooser("Settings-File", "data");
@@ -83,10 +87,15 @@ public class ExponentialGrowth
 			data.clear();
 			tableModel.setData(data);
 			tableModel.setEditingEnabled(true);
+			setComputedValues(null);
 		}));
 		toolBar.add(createButton("Open", e -> {
 			if (fileChooser.showOpenDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
+			{
 				loadSettings( fileChooser.getSelectedFile() );
+				tableModel.setEditingEnabled(true);
+				setComputedValues(null);
+			}
 		}));
 		toolBar.add(createButton("Save", e -> {
 			if (fileChooser.showSaveDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
@@ -96,6 +105,7 @@ public class ExponentialGrowth
 		toolBar.add(createButton("Initial Values", e->{
 			tableModel.setData(data);
 			tableModel.setEditingEnabled(true);
+			setComputedValues(null);
 		}));
 		toolBar.addSeparator();
 		toolBar.add(new JLabel("Simulate "));
@@ -116,6 +126,11 @@ public class ExponentialGrowth
 			if (sl!=null)
 				simulate(sl.length_s);
 		}));
+		toolBar.add(btnShowDiagram = createButton("Show Diagram", e -> {
+			if (computedValues!=null)
+				GrowthDiagramDialog.showDialog(mainWindow, computedValues);
+		}));
+		btnShowDiagram.setEnabled(false);
 		
 		progressPanel = new ProgressPanel(this::stopSimulation);
 		
@@ -124,6 +139,12 @@ public class ExponentialGrowth
 		contentPane.add(tableScrollPane, BorderLayout.CENTER);
 		
 		mainWindow.startGUI(contentPane);
+	}
+	
+	private void setComputedValues(DataPointGroup[] computedValues)
+	{
+		this.computedValues = computedValues;
+		btnShowDiagram.setEnabled(this.computedValues != null);
 	}
 
 	private static class SimulationLength
@@ -190,7 +211,7 @@ public class ExponentialGrowth
 			mainWindow.pack();
 			toolBar.setEnabled(true);
 			simulation = null;
-			GrowthDiagramDialog.showDialog(mainWindow, computedValues);
+			setComputedValues(computedValues);
 		});
 		simulation.start();
 	}

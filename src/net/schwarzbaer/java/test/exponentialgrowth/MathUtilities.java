@@ -1,5 +1,7 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
+import java.util.Locale;
+
 class MathUtilities
 {
 	interface SetResultFunction
@@ -10,34 +12,48 @@ class MathUtilities
 	static void add(double a, ExpFactor aUnit, double b, ExpFactor bUnit, SetResultFunction setResult)
 	{
 		double sum = a*aUnit.value + b*bUnit.value;
-		setResult(setResult, sum);
+		ReducedValue reducedValue = ReducedValue.reduce(sum);
+		setResult.setResult(reducedValue.val, reducedValue.valUnit);
 	}
 
 	static void mul(double a, ExpFactor aUnit, double b, SetResultFunction setResult)
 	{
 		double prod = a*aUnit.value * b;
-		setResult(setResult, prod);
+		ReducedValue reducedValue = ReducedValue.reduce(prod);
+		setResult.setResult(reducedValue.val, reducedValue.valUnit);
 	}
-
-	private static void setResult(SetResultFunction setResult, double value)
+	
+	record ReducedValue(double val, ExpFactor valUnit)
 	{
-		int sign = 1;
-		if (value<0)
+		static ReducedValue reduce(double value)
 		{
-			sign = -1;
-			value = -value;
+			int sign = 1;
+			if (value<0)
+			{
+				sign = -1;
+				value = -value;
+			}
+			
+			ExpFactor[] expFactors = ExpFactor.values();
+			for (int i=0; i<expFactors.length; i++)
+			{
+				ExpFactor f = expFactors[i];
+				ExpFactor fNext = i+1<expFactors.length ? expFactors[i+1] : null;
+				if (fNext==null || value / fNext.value < 1)
+					return new ReducedValue(sign * value / f.value, f);
+			}
+			
+			throw new IllegalStateException();
 		}
 		
-		ExpFactor[] expFactors = ExpFactor.values();
-		for (int i=0; i<expFactors.length; i++)
+		String toString(String numberFormat)
 		{
-			ExpFactor f = expFactors[i];
-			ExpFactor fNext = i+1<expFactors.length ? expFactors[i+1] : null;
-			if (fNext==null || value / fNext.value < 1)
-			{
-				setResult.setResult(sign * value / f.value, f);
-				break;
-			}
+			return String.format(Locale.ENGLISH, numberFormat+" %s", val, valUnit);
+		}
+		
+		static String toString(double value, String numberFormat)
+		{
+			return reduce( value ).toString( numberFormat );
 		}
 	}
 }

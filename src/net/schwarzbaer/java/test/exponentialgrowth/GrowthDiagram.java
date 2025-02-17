@@ -1,11 +1,14 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.Stroke;
+import java.util.Arrays;
 import java.util.Vector;
 
 import net.schwarzbaer.java.lib.gui.ZoomableCanvas;
@@ -70,7 +73,14 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 					g2.fillRect(diagBgX, xAxisY-diagBgHeight, diagBgWidth, diagBgHeight);
 				}
 				
-				// TODO paintCanvas
+				int[] xValues = viewData.timePoints==null ? null : Arrays
+					.stream( viewData.timePoints )
+					.map( viewState::convertPos_AngleToScreen_LongX )
+					.toArray();
+				
+				if (viewData.diagrams!=null && xValues!=null)
+					for (DiagramData diagram : viewData.diagrams)
+						diagram.drawValues(g2, viewState, xValues);
 			}
 			
 			g2.setColor(COLOR_AXIS);
@@ -83,7 +93,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				for (int i=0; i<viewData.diagrams.length; i++)
 				{
 					DiagramData diagram = viewData.diagrams[i];
-					diagram.drawAxis(g2, x, y, height, i*30);
+					diagram.drawAxis(g2, x, y, height, i*60);
 				}
 			
 			
@@ -94,7 +104,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 	@Override
 	protected ViewState createViewState()
 	{
-		ViewState viewState = new ViewState(this, 0.1)
+		ViewState viewState = new ViewState(this, 0.0001)
 		{
 			@Override protected void determineMinMax(MapLatLong min, MapLatLong max)
 			{
@@ -120,6 +130,24 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		return viewState;
 	}
 	
+	private static class NewAxis extends Axes
+	{
+		NewAxis(ViewState viewState, Color axisColor, double unitScaling)
+		{
+			super(viewState, true, axisColor, unitScaling);
+		}
+
+		@Override
+		protected String toString(double angle)
+		{
+			if (Math.abs(angle)<10)
+				return super.toString(angle);
+			
+			MathUtilities.ReducedValue rv = MathUtilities.ReducedValue.reduce(angle);
+			return rv.toString("%1.1f");
+		}
+	}
+	
 	private static class ViewData
 	{
 		private final DataPointGroup[] rawDataPoints;
@@ -128,6 +156,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		private DiagramData[] diagrams;
 		private double diagramBackgroundWidth;
 		private double diagramBackgroundHeight;
+		private int[] timePoints;
 
 		ViewData(DataPointGroup[] rawDataPoints)
 		{
@@ -137,6 +166,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			diagramBackgroundWidth = 0;
 			diagramBackgroundHeight = 0;
 			diagrams = null;
+			timePoints = null;
 		}
 
 		void updateAxes()
@@ -151,14 +181,18 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			diagramBackgroundWidth = 0;
 			diagramBackgroundHeight = 0;
 			diagrams = null;
+			timePoints = null;
 			
 			if (rawDataPoints == null || rawDataPoints.length <= 0)
 				return;
+			
+			timePoints = new int[rawDataPoints.length];
 			
 			Vector<DiagramData> diagrams = new Vector<>();
 			for (int timeIndex=0; timeIndex<rawDataPoints.length; timeIndex++)
 			{
 				DataPointGroup set = rawDataPoints[timeIndex];
+				timePoints[timeIndex] = set.time_s;
 				
 				if (minTime==null || minTime > set.time_s) minTime = (double) set.time_s;
 				if (maxTime==null || maxTime < set.time_s) maxTime = (double) set.time_s;
@@ -199,9 +233,12 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 	
 	private static class DiagramData
 	{
+		private static final Stroke STROKE_AMOUNTS      = new BasicStroke(1.5f);
+		private static final Stroke STROKE_GROWTH_RATES = new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1, new float[] { 6.0f, 3.0f }, 0);
+		
 		double scaling;
 		double maxValue;
-		Axes verticalAxis;
+		NewAxis verticalAxis;
 		final double[] amounts;
 		final double[] growthRates;
 		
@@ -214,15 +251,43 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			growthRates = new double[length];
 		}
 
+		void drawValues(Graphics2D g2, ViewState viewState, int[] xValues)
+		{
+			int[] yValuesA = Arrays
+					.stream( amounts )
+					.mapToInt( value -> viewState.convertPos_AngleToScreen_LatY( value/scaling ) )
+					.toArray();
+			int[] yValuesGR = Arrays
+					.stream( growthRates )
+					.mapToInt( value -> viewState.convertPos_AngleToScreen_LatY( value/scaling ) )
+					.toArray();
+			
+			Stroke prevStroke = g2.getStroke();
+			
+			g2.setColor(Color.BLUE);
+			g2.setStroke(STROKE_AMOUNTS);
+			g2.drawPolyline(xValues, yValuesA , xValues.length);
+			g2.setStroke(STROKE_GROWTH_RATES);
+			g2.drawPolyline(xValues, yValuesGR, xValues.length);
+			
+			g2.setStroke(prevStroke);
+		}
+
 		void drawAxis(Graphics2D g2, int x, int y, int height, int xOffset)
 		{
-			verticalAxis.drawAxis ( g2, x+5+xOffset, y+20, height-40, true);
+			verticalAxis.drawAxis( g2, x+5+xOffset, y+20, height-40, true);
 		}
 
 		void finalizeData(ViewState viewState, double diagramBackgroundHeight)
 		{
 			scaling = maxValue / diagramBackgroundHeight;
-			verticalAxis = new Axes(viewState, true, COLOR_AXIS, scaling); // TODO: axes colors
+			verticalAxis = new NewAxis(viewState, COLOR_AXIS, scaling); // TODO: axes colors
+			//System.out.printf(
+			//		Locale.ENGLISH,
+			//		"Diagram: max: %1.3e (%s) / scaling: %1.3e (%s)%n",
+			//		maxValue, MathUtilities.ReducedValue.toString(maxValue,"%1.1f"),
+			//		scaling , MathUtilities.ReducedValue.toString(scaling ,"%1.1f")
+			//);
 		}
 
 		void setAmount    (int index, double value) { setValue(index, amounts    , value); }
