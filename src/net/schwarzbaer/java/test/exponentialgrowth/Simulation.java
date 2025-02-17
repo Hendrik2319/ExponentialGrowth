@@ -5,19 +5,24 @@ import java.util.Vector;
 import javax.swing.SwingUtilities;
 
 import net.schwarzbaer.java.test.exponentialgrowth.ExponentialGrowth.ProgressPanel;
+import net.schwarzbaer.java.test.exponentialgrowth.GrowthDiagram.DataPointGroup;
 
 class Simulation
 {
+	interface UpdateAtEnd
+	{
+		void updateAtEnd(DataPointGroup[] computedValues);
+	}
 
 	private final int time_s;
 	private final Vector<TableEntry> data;
 	private final ProgressPanel progressPanel;
 	private final ExponentialGrowthTableModel tableModel;
-	private final Runnable updateAtEnd;
+	private final UpdateAtEnd updateAtEnd;
 	private Thread thread;
 	private boolean stopNow;
 
-	Simulation(int time_s, Vector<TableEntry> data, ProgressPanel progressPanel, ExponentialGrowthTableModel tableModel, Runnable updateAtEnd)
+	Simulation(int time_s, Vector<TableEntry> data, ProgressPanel progressPanel, ExponentialGrowthTableModel tableModel, UpdateAtEnd updateAtEnd)
 	{
 		this.time_s = time_s;
 		this.data = data;
@@ -51,12 +56,18 @@ class Simulation
 	private void doInThread()
 	{
 		//System.out.printf("Thread started%n");
+		Vector<DataPointGroup> computedValues = new Vector<>();
+		int computeInterval_s = Math.max( 1, time_s / 100 );
 		
 		for (int timePoint=1; timePoint<=time_s && !stopNow; timePoint++)
 		{
 			//System.out.printf("Thread step %d%n", timePoint);
 			
-			for (int i=data.size()-1; i>0 && !stopNow; i--)
+			DataPointGroup dpg = null;
+			if ((timePoint-1)%computeInterval_s == 0 || timePoint == time_s)
+				computedValues.add(dpg = new DataPointGroup(timePoint));
+			
+			for (int i=data.size()-1; i>0; i--)
 			{
 				//System.out.printf("data entry %d%n", i);
 				
@@ -81,6 +92,11 @@ class Simulation
 							nextEntry.growthRateUnit = valUnit;
 						}
 				);
+				if (dpg!=null)
+					dpg.addDataPoint(
+							nextEntry.currentAmount    * nextEntry.currentAmountUnit.value,
+							thisEntry.growthRate_per_s * thisEntry.growthRateUnit.value
+					);
 			}
 			
 			final int timePoint_ = timePoint;
@@ -90,9 +106,11 @@ class Simulation
 			});
 		}
 		
+		DataPointGroup[] computedValuesArr = computedValues.toArray(DataPointGroup[]::new);
+		
 		cleanUp();
 		if (updateAtEnd!=null)
-			SwingUtilities.invokeLater(updateAtEnd);
+			SwingUtilities.invokeLater(() -> updateAtEnd.updateAtEnd(computedValuesArr));
 		
 		//System.out.printf("Thread finished%n");
 	}

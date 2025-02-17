@@ -14,6 +14,7 @@ import java.util.Vector;
 import java.util.function.Consumer;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -97,18 +98,24 @@ public class ExponentialGrowth
 			tableModel.setEditingEnabled(true);
 		}));
 		toolBar.addSeparator();
-		toolBar.add(new JLabel("After: "));
-		toolBar.add(createButton("10 s"  , e -> simulate(           10) ));
-		toolBar.add(createButton("1 min" , e -> simulate(        1* 60) ));
-		toolBar.add(createButton("10 min", e -> simulate(       10* 60) ));
-		toolBar.add(createButton("1 h"   , e -> simulate(    1* 60* 60) ));
-		toolBar.add(createButton("2 h"   , e -> simulate(    2* 60* 60) ));
-		toolBar.add(createButton("5 h"   , e -> simulate(    5* 60* 60) ));
-		toolBar.add(createButton("12 h"  , e -> simulate(   12* 60* 60) ));
-		toolBar.add(createButton("1 day" , e -> simulate(1* 24* 60* 60) ));
-		toolBar.add(createButton("2 day" , e -> simulate(2* 24* 60* 60) ));
-		toolBar.add(createButton("4 day" , e -> simulate(4* 24* 60* 60) ));
-		toolBar.add(createButton("8 day" , e -> simulate(8* 24* 60* 60) ));
+		toolBar.add(new JLabel("Simulate "));
+		SimulationLength[] simulationLengths = {
+			new SimulationLength("10 s"  ,            10),
+			new SimulationLength("1 min" ,         1* 60),
+			new SimulationLength("10 min",        10* 60),
+			new SimulationLength("1 h"   ,     1* 60* 60),
+			new SimulationLength("2 h"   ,     2* 60* 60),
+			new SimulationLength("5 h"   ,     5* 60* 60),
+			new SimulationLength("12 h"  ,    12* 60* 60),
+			new SimulationLength("1 day" , 1* 24* 60* 60),
+			new SimulationLength("2 day" , 2* 24* 60* 60),
+			new SimulationLength("4 day" , 4* 24* 60* 60),
+			new SimulationLength("8 day" , 8* 24* 60* 60),
+		};
+		toolBar.add(createComboBox(simulationLengths, sl -> {
+			if (sl!=null)
+				simulate(sl.length_s);
+		}));
 		
 		progressPanel = new ProgressPanel(this::stopSimulation);
 		
@@ -117,6 +124,21 @@ public class ExponentialGrowth
 		contentPane.add(tableScrollPane, BorderLayout.CENTER);
 		
 		mainWindow.startGUI(contentPane);
+	}
+
+	private static class SimulationLength
+	{
+		private final String label;
+		private final int length_s;
+
+		SimulationLength(String label, int length_s)
+		{
+			this.label = label;
+			this.length_s = length_s;
+			
+		}
+
+		@Override public String toString() { return label; }
 	}
 	
 	static class ProgressPanel extends JPanel
@@ -163,11 +185,12 @@ public class ExponentialGrowth
 		Vector<TableEntry> data2 = new Vector<>( data.stream().map(TableEntry::new).toList() );
 		tableModel.setData(data2);
 		
-		simulation = new Simulation(time_s, data2, progressPanel, tableModel, () -> {
+		simulation = new Simulation(time_s, data2, progressPanel, tableModel, computedValues -> {
 			contentPane.remove(progressPanel);
 			mainWindow.pack();
 			toolBar.setEnabled(true);
 			simulation = null;
+			GrowthDiagramDialog.showDialog(mainWindow, computedValues);
 		});
 		simulation.start();
 	}
@@ -237,7 +260,7 @@ public class ExponentialGrowth
 		tableModel.setData(data);
 	}
 	
-	private void parseDouble(String valueStr, Consumer<Double> setValue)
+	private static void parseDouble(String valueStr, Consumer<Double> setValue)
 	{
 		try {
 			double value = Double.parseDouble(valueStr);
@@ -278,17 +301,25 @@ public class ExponentialGrowth
 		System.out.printf("... done%n");
 	}
 
-	private static JButton createButton(String text, ActionListener al)
+	static JButton createButton(String text, ActionListener al)
 	{
 		JButton comp = new JButton(text);
 		if (al!=null) comp.addActionListener(al);
 		return comp;
 	}
 
-	private static JMenuItem createMenuItem(String text, ActionListener al)
+	static JMenuItem createMenuItem(String text, ActionListener al)
 	{
 		JMenuItem comp = new JMenuItem(text);
 		if (al!=null) comp.addActionListener(al);
+		return comp;
+	}
+
+	static <E> JComboBox<E> createComboBox(E[] values, Consumer<E> valueSelected)
+	{
+		JComboBox<E> comp = new JComboBox<>(values);
+		if (valueSelected!=null)
+			comp.addActionListener( e -> valueSelected.accept( comp.getItemAt( comp.getSelectedIndex() ) ) );
 		return comp;
 	}
 
