@@ -288,7 +288,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 				float f = (float) (Math.floor( totalCount / 2.0 ) / totalCount);
 				h = index*f;
 			}
-			return Color.getHSBColor(h, 1, 0.7f);
+			return Color.getHSBColor(h, 1, 0.8f);
 		}
 	}
 	
