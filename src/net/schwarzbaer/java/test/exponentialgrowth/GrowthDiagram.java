@@ -17,7 +17,6 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 {
 	private static final long serialVersionUID = -1738348586502662438L;
 	private static final Color COLOR_AXIS       = new Color(0x70000000,true);
-	private static final Color COLOR_BORDER     = COLOR_AXIS;
 	private static final Color COLOR_BACKGROUND = Color.WHITE;
 	private static final double WIDTH_TO_HEIGHT_RATIO = 1.8; 
 	
@@ -226,8 +225,24 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			diagramBackgroundWidth  = maxTime-minTime;
 			diagramBackgroundHeight = diagramBackgroundWidth / WIDTH_TO_HEIGHT_RATIO;
 			
-			for (DiagramData diagram : this.diagrams)
-				diagram.finalizeData(viewState, diagramBackgroundHeight);
+			for (int i=0; i<this.diagrams.length; i++)
+				this.diagrams[i].finalizeData(computeDiagramColor(i, this.diagrams.length), viewState, diagramBackgroundHeight);
+		}
+		
+		private static Color computeDiagramColor(int index, int totalCount)
+		{
+			final float h;
+			if ((totalCount & 1) == 0)
+			{
+				int index_ = (index >> 1) + ((index & 1) == 0 ? 0 : (totalCount >> 1));
+				h = index_ / (float)totalCount;
+			}
+			else
+			{
+				float f = (float) (Math.floor( totalCount / 2.0 ) / totalCount);
+				h = index*f;
+			}
+			return Color.getHSBColor(h, 1, 0.7f);
 		}
 	}
 	
@@ -236,6 +251,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		private static final Stroke STROKE_AMOUNTS      = new BasicStroke(1.5f);
 		private static final Stroke STROKE_GROWTH_RATES = new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1, new float[] { 6.0f, 3.0f }, 0);
 		
+		Color color;
 		double scaling;
 		double maxValue;
 		NewAxis verticalAxis;
@@ -244,6 +260,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 		
 		DiagramData(int length)
 		{
+			color = Color.BLUE;
 			scaling = 1;
 			maxValue = 0;
 			verticalAxis = null;
@@ -264,7 +281,7 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			
 			Stroke prevStroke = g2.getStroke();
 			
-			g2.setColor(Color.BLUE);
+			g2.setColor(color);
 			g2.setStroke(STROKE_AMOUNTS);
 			g2.drawPolyline(xValues, yValuesA , xValues.length);
 			g2.setStroke(STROKE_GROWTH_RATES);
@@ -278,10 +295,11 @@ class GrowthDiagram extends ZoomableCanvas<ZoomableCanvas.ViewState>
 			verticalAxis.drawAxis( g2, x+5+xOffset, y+20, height-40, true);
 		}
 
-		void finalizeData(ViewState viewState, double diagramBackgroundHeight)
+		void finalizeData(Color color, ViewState viewState, double diagramBackgroundHeight)
 		{
+			this.color = color;
 			scaling = maxValue / diagramBackgroundHeight;
-			verticalAxis = new NewAxis(viewState, COLOR_AXIS, scaling); // TODO: axes colors
+			verticalAxis = new NewAxis(viewState, this.color, scaling);
 			//System.out.printf(
 			//		Locale.ENGLISH,
 			//		"Diagram: max: %1.3e (%s) / scaling: %1.3e (%s)%n",
