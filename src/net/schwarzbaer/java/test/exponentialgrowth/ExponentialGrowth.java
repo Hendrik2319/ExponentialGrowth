@@ -55,13 +55,15 @@ public class ExponentialGrowth
 	private final JPanel contentPane;
 	private final JButton btnShowDiagram;
 	private DataPointGroup[] computedValues;
+	private File currentfile;
 	
 	private ExponentialGrowth()
 	{
 		simulation = null;
 		computedValues = null;
+		currentfile = null;
 		
-		mainWindow = new StandardMainWindow("Exponential Growth");
+		mainWindow = new StandardMainWindow();
 		fileChooser = new FileChooser("Settings-File", "data");
 		
 		data = new Vector<>();
@@ -139,8 +141,14 @@ public class ExponentialGrowth
 		contentPane.add(tableScrollPane, BorderLayout.CENTER);
 		
 		mainWindow.startGUI(contentPane);
+		updateWindowTitle();
 	}
 	
+	private void updateWindowTitle()
+	{
+		mainWindow.setTitle( "Exponential Growth" + (currentfile == null ? "" : " - "+currentfile.getName()) );
+	}
+
 	private void setComputedValues(DataPointGroup[] computedValues)
 	{
 		this.computedValues = computedValues;
@@ -279,6 +287,8 @@ public class ExponentialGrowth
 		System.out.printf("... done%n");
 		
 		tableModel.setData(data);
+		currentfile = file;
+		updateWindowTitle();
 	}
 	
 	private static void parseDouble(String valueStr, Consumer<Double> setValue)
@@ -320,6 +330,8 @@ public class ExponentialGrowth
 		}
 		
 		System.out.printf("... done%n");
+		currentfile = file;
+		updateWindowTitle();
 	}
 
 	static JButton createButton(String text, ActionListener al)

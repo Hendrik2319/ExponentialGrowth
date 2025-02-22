@@ -1,0 +1,5 @@
+- "unsaved" warning
+- custom table cell editor:
+   - should be able to parse input like "1.234 GG"
+   - should tolerant to diff. decimal separators: '.' | ','
+- add variant "simulate until value XY reached"
