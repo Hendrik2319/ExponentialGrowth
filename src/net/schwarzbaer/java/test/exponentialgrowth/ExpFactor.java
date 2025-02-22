@@ -36,7 +36,7 @@ enum ExpFactor
 	YY ("YY", 1e87 ),
 	ZZ ("ZZ", 1e90 ),
 	;
-	private final String label;
+	final String label;
 	final double value;
 
 	ExpFactor(String label, double value)

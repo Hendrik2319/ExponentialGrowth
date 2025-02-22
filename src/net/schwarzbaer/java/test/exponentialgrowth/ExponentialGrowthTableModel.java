@@ -34,12 +34,16 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	
 	private Vector<TableEntry> rows;
 	private boolean isEditingEnabled;
+	private ExpFactor unitInNewRow;
+	private ColumnID unitInNewRowColumnID;
 
 	ExponentialGrowthTableModel(Vector<TableEntry> rows)
 	{
 		super(ColumnID.values(), rows);
 		this.rows = rows;
 		isEditingEnabled = true;
+		unitInNewRow = null;
+		unitInNewRowColumnID = null;
 	}
 
 	@Override
@@ -67,7 +71,14 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	{
 		ExponentialGrowthTableCellRenderer cellRenderer = new ExponentialGrowthTableCellRenderer(table, this);
 		setDefaultRenderers( clazz -> cellRenderer );
+		
 		table.setDefaultEditor(ExpFactor.class, new Tables.ComboboxCellEditor<>(ExpFactor.values()));
+		
+		ValueAndUnitCellEditor valueEditor = new ValueAndUnitCellEditor(this);
+		forEachColum( (columnID, tableColumn) -> {
+			if (columnID==ColumnID.CurrentAmount || columnID==ColumnID.GrowthRate_per_s)
+				tableColumn.setCellEditor(valueEditor);
+		} );
 	}
 
 	@Override
@@ -104,6 +115,16 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		if (row == null)
 			return;
 		
+		if (rowIsNew && unitInNewRow!=null && unitInNewRowColumnID!=null)
+			switch (unitInNewRowColumnID)
+			{
+			case CurrentAmountUnit: row.currentAmountUnit = unitInNewRow; break;
+			case GrowthRateUnit   : row.growthRateUnit    = unitInNewRow; break;
+			default: break;
+			}
+		unitInNewRow = null;
+		unitInNewRowColumnID = null;
+		
 		switch (columnID)
 		{
 		case Index: break;
@@ -113,6 +134,7 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		case GrowthRateUnit    : row.growthRateUnit    = (ExpFactor)aValue; updateRatio(rowIndex, row); break;
 		case Ratio: break;
 		}
+		
 		if (rowIsNew)
 			fireTableUpdate();
 	}
@@ -121,6 +143,33 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	{
 		row.updateRatio();
 		fireTableCellUpdate(rowIndex, ColumnID.Ratio);
+	}
+
+	void setUnit(int rowIndex, ExpFactor unit, ColumnID unitColumnID)
+	{
+		if (unitColumnID==null) return;
+		
+		if (rowIndex == rows.size())
+		{
+			unitInNewRow = unit;
+			unitInNewRowColumnID = unitColumnID;
+			return;
+		}
+		
+		unitInNewRow = null;
+		unitInNewRowColumnID = null;
+		
+		TableEntry row = getRow(rowIndex);
+		if (row==null) return;
+		
+		switch (unitColumnID)
+		{
+		case CurrentAmountUnit: row.currentAmountUnit = unit; break;
+		case GrowthRateUnit   : row.growthRateUnit    = unit; break;
+		default: break;
+		}
+		
+		fireTableCellUpdate(rowIndex, unitColumnID);
 	}
 	
 	
