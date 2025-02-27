@@ -22,11 +22,16 @@ class ValueAndUnitCellEditor extends AbstractCellEditor implements TableCellEdit
 	
 	private Object currentValue;
 	private final ExponentialGrowthTableModel tableModel;
+	private final CombinedValueParser<ExpFactor> valueParser;
 	
 	ValueAndUnitCellEditor( ExponentialGrowthTableModel tableModel )
 	{
 		this.tableModel = tableModel;
 		currentValue = null;
+		valueParser = new CombinedValueParser<>(
+				CombinedValueParser.reversed(ExpFactor.values(), ExpFactor[]::new),
+				ef -> ef.label
+		);
 	}
 	
 	@Override
@@ -54,14 +59,15 @@ class ValueAndUnitCellEditor extends AbstractCellEditor implements TableCellEdit
 		});
 		
 		editorComp.addActionListener(e -> {
-			ParsedInput parsedInput = parseInput( editorComp.getText() );
-			if (!parsedInput.isOk)
+			CombinedValueParser.ParsedInput<ExpFactor> parsedInput = valueParser.parseInput( editorComp.getText() );
+			if (!parsedInput.isOk())
 			{
 				editorComp.setBorder(BORDER_WRONG);
 				return;
 			}
 			
-			if (parsedInput.unit!=null && columnID!=null)
+			ExpFactor unit = parsedInput.unit();
+			if (unit!=null && columnID!=null)
 			{
 				ColumnID unitColumnID = switch (columnID)
 					{
@@ -70,51 +76,13 @@ class ValueAndUnitCellEditor extends AbstractCellEditor implements TableCellEdit
 						default -> null;
 					};
 				if (unitColumnID!=null)
-					tableModel.setUnit(rowM, parsedInput.unit, unitColumnID);
+					tableModel.setUnit(rowM, unit, unitColumnID);
 			}
 			
-			this.currentValue = parsedInput.value;
+			this.currentValue = parsedInput.value();
 			fireEditingStopped();
 		});
 		
 		return editorComp;
 	}
-
-	static ParsedInput parseInput(String text)
-	{
-		text = text.trim();
-		
-		ExpFactor unit = null;
-		
-		ExpFactor[] units = ExpFactor.values();
-		for (int i=units.length-1; i>=0; i--)
-		{
-			ExpFactor unit_ = units[i];
-			if (text.endsWith(unit_.label))
-			{
-				unit = unit_;
-				text = text.substring( 0, text.length()-unit_.label.length() ).trim();
-				break;
-			}
-		}
-		
-		text = text.replace(',', '.');
-		Double d = null;
-		try { d = Double.parseDouble(text); }
-		catch (NumberFormatException e) {}
-		
-		
-		if (d!=null && Double.isFinite(d))
-			return new ParsedInput(d, unit, true);
-		
-		return new ParsedInput(0, unit, false);
-	}
-
-	record ParsedInput(
-		double value,
-		ExpFactor unit,
-		boolean isOk
-	) {
-	}
-
 }
