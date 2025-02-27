@@ -1,6 +1,7 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.File;
@@ -56,12 +57,14 @@ public class ExponentialGrowth
 	private final JButton btnShowDiagram;
 	private DataPointGroup[] computedValues;
 	private File currentfile;
+	private Integer selectedLength_s;
 	
 	private ExponentialGrowth()
 	{
 		simulation = null;
 		computedValues = null;
 		currentfile = null;
+		selectedLength_s = null;
 		
 		mainWindow = new StandardMainWindow();
 		fileChooser = new FileChooser("Settings-File", "data");
@@ -77,6 +80,7 @@ public class ExponentialGrowth
 		tableModel.setDefaultCellEditorsAndRenderers();
 		
 		JScrollPane tableScrollPane = new JScrollPane(table);
+		tableScrollPane.setPreferredSize(new Dimension(400,250));
 		
 		TableContextMenu contextMenu = new TableContextMenu(table, tableModel);
 		contextMenu.addTo(table, () -> ContextMenu.computeSurrogateMousePos(table, tableScrollPane, tableModel.getColumn(ExponentialGrowthTableModel.ColumnID.CurrentAmount)));
@@ -123,10 +127,19 @@ public class ExponentialGrowth
 			new SimulationLength("2 day" , 2* 24* 60* 60),
 			new SimulationLength("4 day" , 4* 24* 60* 60),
 			new SimulationLength("8 day" , 8* 24* 60* 60),
+			new SimulationLength("Custom ...", null),
 		};
 		toolBar.add(createComboBox(simulationLengths, sl -> {
 			if (sl!=null)
-				simulate(sl.length_s);
+			{
+				Integer length_s = sl.length_s;
+				if (length_s == null) length_s = SimulationLengthInputDialog.showDialog(mainWindow, selectedLength_s);
+				if (length_s != null)
+				{
+					selectedLength_s = length_s;
+					simulate(length_s);
+				}
+			}
 		}));
 		toolBar.add(btnShowDiagram = createButton("Show Diagram", e -> {
 			if (computedValues!=null)
@@ -158,9 +171,9 @@ public class ExponentialGrowth
 	private static class SimulationLength
 	{
 		private final String label;
-		private final int length_s;
+		private final Integer length_s;
 
-		SimulationLength(String label, int length_s)
+		SimulationLength(String label, Integer length_s)
 		{
 			this.label = label;
 			this.length_s = length_s;
@@ -201,7 +214,7 @@ public class ExponentialGrowth
 		// TODO: initialize()
 	}
 
-	private synchronized void simulate(int time_s)
+	private void simulate(int time_s)
 	{
 		if (simulation!=null)
 			return;
@@ -224,7 +237,7 @@ public class ExponentialGrowth
 		simulation.start();
 	}
 
-	private synchronized void stopSimulation()
+	private void stopSimulation()
 	{
 		if (simulation!=null)
 			simulation.stop();

@@ -44,13 +44,14 @@ class CombinedValueParser<UnitType>
 		
 		
 		if (d!=null && Double.isFinite(d))
-			return new ParsedInput<>(d, unit, true);
+			return new ParsedInput<>(d, text, unit, true);
 		
-		return new ParsedInput<>(0, unit, false);
+		return new ParsedInput<>(0, null, unit, false);
 	}
 
 	record ParsedInput<UnitType>(
 		double value,
+		String valueWithoutUnit,
 		UnitType unit,
 		boolean isOk
 	) {}
