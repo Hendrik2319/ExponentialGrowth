@@ -94,6 +94,8 @@ public class ExponentialGrowth
 			tableModel.setData(data);
 			tableModel.setEditingEnabled(true);
 			setComputedValues(null);
+			currentfile = null;
+			updateWindowTitle();
 		}));
 		toolBar.add(createButton("Open", e -> {
 			if (fileChooser.showOpenDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
