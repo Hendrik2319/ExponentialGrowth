@@ -29,8 +29,9 @@ class ValueAndUnitCellEditor extends AbstractCellEditor implements TableCellEdit
 		this.tableModel = tableModel;
 		currentValue = null;
 		valueParser = new CombinedValueParser<>(
-				CombinedValueParser.reversed(ExpFactor.values(), ExpFactor[]::new),
-				ef -> ef.label
+				ExpFactor.values(),
+				ef -> ef.unitStr,
+				ExpFactor[]::new
 		);
 	}
 	

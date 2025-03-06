@@ -32,6 +32,7 @@ import net.schwarzbaer.java.lib.gui.ContextMenu;
 import net.schwarzbaer.java.lib.gui.FileChooser;
 import net.schwarzbaer.java.lib.gui.StandardMainWindow;
 import net.schwarzbaer.java.lib.gui.Tables;
+import net.schwarzbaer.java.lib.system.Settings;
 import net.schwarzbaer.java.test.exponentialgrowth.GrowthDiagram.DataPointGroup;
 
 public class ExponentialGrowth
@@ -157,6 +158,8 @@ public class ExponentialGrowth
 		
 		mainWindow.startGUI(contentPane);
 		updateWindowTitle();
+		
+		AppSettings.getInstance().registerAppWindow(mainWindow);
 	}
 	
 	private void updateWindowTitle()
@@ -380,6 +383,31 @@ public class ExponentialGrowth
 			add(createMenuItem("Show Column Widths", e->{
 				System.out.printf("Column Widths: %s%n", ExponentialGrowthTableModel.getColumnWidthsAsString(table));
 			}));
+		}
+	}
+	
+	static class AppSettings extends Settings.DefaultAppSettings<AppSettings.ValueGroup,AppSettings.ValueKey> {
+		public enum ValueKey {
+		}
+
+		private enum ValueGroup implements Settings.GroupKeys<ValueKey> {
+			;
+			ValueKey[] keys;
+			ValueGroup(ValueKey...keys) { this.keys = keys;}
+			@Override public ValueKey[] getKeys() { return keys; }
+		}
+		
+		private static AppSettings instance = null;
+		
+		static AppSettings getInstance()
+		{
+			if (instance == null)
+				instance = new AppSettings();
+			return instance; 
+		}
+
+		AppSettings() {
+			super(ExponentialGrowth.class, ValueKey.values());
 		}
 	}
 }
