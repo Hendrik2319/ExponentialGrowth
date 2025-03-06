@@ -124,6 +124,19 @@ class UnitValueInputDialog<UnitType extends UnitValueInputDialog.UnitTypeIF> ext
 		inputAccepted = false;
 	}
 	
+	static <T extends UnitTypeIF> Double showDialog(
+			Window parent, String title,
+			Double previousValue,
+			T[] units,
+			IntFunction<T[]> createArrayFcn
+	) {
+		return showDialog(new UnitValueInputDialog<>(
+				parent, title,
+				previousValue,
+				units, createArrayFcn
+		));
+	}
+	
 	protected static <T extends UnitTypeIF> Double showDialog(UnitValueInputDialog<T> dlg)
 	{
 		dlg.showDialog();

@@ -182,6 +182,12 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		
 		fireTableCellUpdate(rowIndex, unitColumnID);
 	}
+
+	@Override
+	public void fireTableRowUpdate(int rowIndex)
+	{
+		super.fireTableRowUpdate(rowIndex);
+	}
 	
 	
 }

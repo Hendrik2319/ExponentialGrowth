@@ -1,5 +1,7 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
+import net.schwarzbaer.java.test.exponentialgrowth.MathUtilities.ReducedValue;
+
 class TableEntry
 {
 	final int index;
@@ -34,5 +36,16 @@ class TableEntry
 			ratio = Double.NaN;
 		else
 			ratio = (growthRate_per_s * growthRateUnit.value) / (currentAmount * currentAmountUnit.value);
+	}
+	
+	void addToAmount(double value)
+	{
+		double newAmount = currentAmount * currentAmountUnit.value + value;
+		ReducedValue newAmountReduced     = MathUtilities.ReducedValue.reduce(newAmount);
+		ReducedValue newGrowthRateReduced = MathUtilities.ReducedValue.reduce(newAmount * ratio);
+		currentAmount     = newAmountReduced.val();
+		currentAmountUnit = newAmountReduced.valUnit();
+		growthRate_per_s  = newGrowthRateReduced.val();
+		growthRateUnit    = newGrowthRateReduced.valUnit();
 	}
 }

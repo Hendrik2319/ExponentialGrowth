@@ -2,7 +2,7 @@ package net.schwarzbaer.java.test.exponentialgrowth;
 
 import java.util.function.Consumer;
 
-enum ExpFactor
+enum ExpFactor implements UnitValueInputDialog.UnitTypeIF
 {
 	_1 ( "-", "", 1),
 	K  ( 1e3  ),
@@ -60,4 +60,7 @@ enum ExpFactor
 		try { setValue.accept( valueOf(str) ); }
 		catch (Exception e) {}
 	}
+	
+	@Override public double getValue  () { return value; }
+	@Override public String getUnitStr() { return unitStr; }
 }

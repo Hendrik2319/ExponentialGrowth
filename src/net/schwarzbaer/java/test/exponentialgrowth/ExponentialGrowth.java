@@ -2,6 +2,8 @@ package net.schwarzbaer.java.test.exponentialgrowth;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.File;
@@ -83,7 +85,7 @@ public class ExponentialGrowth
 		JScrollPane tableScrollPane = new JScrollPane(table);
 		tableScrollPane.setPreferredSize(new Dimension(400,250));
 		
-		TableContextMenu contextMenu = new TableContextMenu(table, tableModel);
+		TableContextMenu contextMenu = new TableContextMenu(mainWindow, table, tableModel);
 		contextMenu.addTo(table, () -> ContextMenu.computeSurrogateMousePos(table, tableScrollPane, tableModel.getColumn(ExponentialGrowthTableModel.ColumnID.CurrentAmount)));
 		contextMenu.addTo(tableScrollPane);
 		
@@ -377,12 +379,47 @@ public class ExponentialGrowth
 	private static class TableContextMenu extends ContextMenu
 	{
 		private static final long serialVersionUID = 8756273253569442771L;
+		
+		private TableEntry clickedRow;
+		private int clickedRowIndexM;
 
-		TableContextMenu(JTable table, ExponentialGrowthTableModel tableModel)
+		TableContextMenu(Window parent, JTable table, ExponentialGrowthTableModel tableModel)
 		{
+			clickedRow = null;
+			clickedRowIndexM = -1;
+			
+			JMenuItem miAddAmount = add(createMenuItem("##", e->{
+				Double value = UnitValueInputDialog.showDialog(
+						parent, "Enter amount delta",
+						null,
+						ExpFactor.values(),
+						ExpFactor[]::new
+				);
+				if (value==null) return;
+				clickedRow.addToAmount( value );
+				tableModel.fireTableRowUpdate(clickedRowIndexM);
+			}));
+			
+			addSeparator();
+			
 			add(createMenuItem("Show Column Widths", e->{
 				System.out.printf("Column Widths: %s%n", ExponentialGrowthTableModel.getColumnWidthsAsString(table));
 			}));
+			
+			addContextMenuInvokeListener((comp, x,y) -> {
+				int rowV = table.rowAtPoint(new Point(x, y));
+				clickedRowIndexM = rowV<0 ? -1 : table.convertRowIndexToModel(rowV);
+				clickedRow = tableModel.getRow(clickedRowIndexM);
+				if (clickedRow!=null)
+					table.setRowSelectionInterval(clickedRowIndexM, clickedRowIndexM);
+				
+				miAddAmount.setEnabled(clickedRow!=null);
+				miAddAmount.setText(
+						clickedRow==null
+							? "Add amount ..."
+							: "Add amount to row %d ...".formatted( clickedRowIndexM )
+				);
+			});
 		}
 	}
 	
