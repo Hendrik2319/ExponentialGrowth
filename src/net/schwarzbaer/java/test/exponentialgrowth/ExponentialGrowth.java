@@ -93,19 +93,21 @@ public class ExponentialGrowth
 		toolBar.setFloatable(false);
 		
 		toolBar.add(createButton("New", e -> {
+			currentfile = null;
 			data.clear();
 			tableModel.setData(data);
 			tableModel.setEditingEnabled(true);
 			setComputedValues(null);
-			currentfile = null;
 			updateWindowTitle();
 		}));
 		toolBar.add(createButton("Open", e -> {
 			if (fileChooser.showOpenDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
 			{
-				loadSettings( fileChooser.getSelectedFile() );
+				loadSettings( currentfile = fileChooser.getSelectedFile() );
+				tableModel.setData(data);
 				tableModel.setEditingEnabled(true);
 				setComputedValues(null);
+				updateWindowTitle();
 			}
 		}));
 		toolBar.add(createButton("Save", e -> {
@@ -218,7 +220,6 @@ public class ExponentialGrowth
 
 	private void initialize()
 	{
-		// TODO: initialize()
 	}
 
 	private void simulate(int time_s)
@@ -230,9 +231,9 @@ public class ExponentialGrowth
 		contentPane.add(progressPanel, BorderLayout.SOUTH);
 		mainWindow.pack();
 		
-		tableModel.setEditingEnabled(false);
 		Vector<TableEntry> data2 = new Vector<>( data.stream().map(TableEntry::new).toList() );
 		tableModel.setData(data2);
+		tableModel.setEditingEnabled(false);
 		
 		simulation = new Simulation(time_s, data2, progressPanel, tableModel, computedValues -> {
 			contentPane.remove(progressPanel);
@@ -305,10 +306,6 @@ public class ExponentialGrowth
 		}
 		
 		System.out.printf("... done%n");
-		
-		tableModel.setData(data);
-		currentfile = file;
-		updateWindowTitle();
 	}
 	
 	private static void parseDouble(String valueStr, Consumer<Double> setValue)
@@ -397,23 +394,23 @@ public class ExponentialGrowth
 				);
 				if (value==null) return;
 				clickedRow.addToAmount( value );
-				tableModel.fireTableRowUpdate(clickedRowIndexM);
+				tableModel.fireTableRowUpdate( clickedRowIndexM );
 			}));
 			
 			addSeparator();
 			
 			add(createMenuItem("Show Column Widths", e->{
-				System.out.printf("Column Widths: %s%n", ExponentialGrowthTableModel.getColumnWidthsAsString(table));
+				System.out.printf("Column Widths: %s%n", ExponentialGrowthTableModel.getColumnWidthsAsString( table ));
 			}));
 			
 			addContextMenuInvokeListener((comp, x,y) -> {
 				int rowV = table.rowAtPoint(new Point(x, y));
-				clickedRowIndexM = rowV<0 ? -1 : table.convertRowIndexToModel(rowV);
-				clickedRow = tableModel.getRow(clickedRowIndexM);
+				clickedRowIndexM = rowV<0 ? -1 : table.convertRowIndexToModel( rowV );
+				clickedRow = tableModel.getRow( clickedRowIndexM );
 				if (clickedRow!=null)
-					table.setRowSelectionInterval(clickedRowIndexM, clickedRowIndexM);
+					table.setRowSelectionInterval( clickedRowIndexM, clickedRowIndexM );
 				
-				miAddAmount.setEnabled(clickedRow!=null);
+				miAddAmount.setEnabled( clickedRow!=null && tableModel.isEditingEnabled() );
 				miAddAmount.setText(
 						clickedRow==null
 							? "Add amount ..."

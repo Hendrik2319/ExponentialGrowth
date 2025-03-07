@@ -71,6 +71,11 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		this.isEditingEnabled = isEditingEnabled;
 	}
 
+	boolean isEditingEnabled()
+	{
+		return isEditingEnabled;
+	}
+
 	@Override
 	public int getRowCount()
 	{
