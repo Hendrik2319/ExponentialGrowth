@@ -12,9 +12,9 @@ class GrowthDiagramDialog extends StandardDialog
 {
 	private static final long serialVersionUID = -2888008418787036911L;
 
-	private GrowthDiagramDialog(Window parent, DataPointGroup[] data)
+	private GrowthDiagramDialog(Window parent, String title, DataPointGroup[] data)
 	{
-		super(parent, "", ModalityType.APPLICATION_MODAL, false);
+		super(parent, title, ModalityType.APPLICATION_MODAL, false);
 		GrowthDiagram growthDiagram = new GrowthDiagram();
 		growthDiagram.setData(data);
 		
@@ -24,8 +24,8 @@ class GrowthDiagramDialog extends StandardDialog
 		createGUI(contentPane, ExponentialGrowth.createButton("Close", e -> closeDialog() ));
 	}
 	
-	static void showDialog(Window parent, DataPointGroup[] data)
+	static void showDialog(Window parent, String title, DataPointGroup[] data)
 	{
-		new GrowthDiagramDialog(parent, data).showDialog();
+		new GrowthDiagramDialog(parent, title, data).showDialog();
 	}
 }

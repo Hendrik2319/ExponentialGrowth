@@ -45,16 +45,14 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	
 	private Vector<TableEntry> rows;
 	private boolean isEditingEnabled;
-	private ExpFactor unitInNewRow;
-	private ColumnID unitInNewRowColumnID;
+	private final Runnable notifyChangedData;
 
-	ExponentialGrowthTableModel(Vector<TableEntry> rows)
+	ExponentialGrowthTableModel(Vector<TableEntry> rows, Runnable notifyChangedData)
 	{
 		super(ColumnID.values(), rows);
 		this.rows = rows;
+		this.notifyChangedData = notifyChangedData;
 		isEditingEnabled = true;
-		unitInNewRow = null;
-		unitInNewRowColumnID = null;
 	}
 
 	@Override
@@ -120,8 +118,17 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 	@Override
 	protected void setValueAt(Object aValue, int rowIndex, int columnIndex, ColumnID columnID)
 	{
+		setValueAt(aValue, rowIndex, columnID);
+	}
+
+	private void setValueAt(Object aValue, int rowIndex, ColumnID columnID)
+	{
+		if (columnID == null)
+			return;
+		
 		final TableEntry row;
 		boolean rowIsNew = false;
+		
 		if (rowIndex == rows.size()) {
 			rows.add(row = new TableEntry( rows.size() ));
 			rowIsNew = true;
@@ -131,23 +138,13 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		if (row == null)
 			return;
 		
-		if (rowIsNew && unitInNewRow!=null && unitInNewRowColumnID!=null)
-			switch (unitInNewRowColumnID)
-			{
-			case CurrentAmountUnit: row.currentAmountUnit = unitInNewRow; break;
-			case GrowthRateUnit   : row.growthRateUnit    = unitInNewRow; break;
-			default: break;
-			}
-		unitInNewRow = null;
-		unitInNewRowColumnID = null;
-		
 		switch (columnID)
 		{
 		case Index: break;
-		case CurrentAmount     : row.currentAmount     = (Double   )aValue; updateRatio(rowIndex, row); break;
-		case CurrentAmountUnit : row.currentAmountUnit = (ExpFactor)aValue; updateRatio(rowIndex, row); break;
-		case GrowthRate_per_s  : row.growthRate_per_s  = (Double   )aValue; updateRatio(rowIndex, row); break;
-		case GrowthRateUnit    : row.growthRateUnit    = (ExpFactor)aValue; updateRatio(rowIndex, row); break;
+		case CurrentAmount     : row.currentAmount     = (Double   )aValue; updateRatio(rowIndex, row); notifyChangedData.run(); break;
+		case CurrentAmountUnit : row.currentAmountUnit = (ExpFactor)aValue; updateRatio(rowIndex, row); notifyChangedData.run(); break;
+		case GrowthRate_per_s  : row.growthRate_per_s  = (Double   )aValue; updateRatio(rowIndex, row); notifyChangedData.run(); break;
+		case GrowthRateUnit    : row.growthRateUnit    = (ExpFactor)aValue; updateRatio(rowIndex, row); notifyChangedData.run(); break;
 		case Ratio: break;
 		}
 		
@@ -163,28 +160,7 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 
 	void setUnit(int rowIndex, ExpFactor unit, ColumnID unitColumnID)
 	{
-		if (unitColumnID==null) return;
-		
-		if (rowIndex == rows.size())
-		{
-			unitInNewRow = unit;
-			unitInNewRowColumnID = unitColumnID;
-			return;
-		}
-		
-		unitInNewRow = null;
-		unitInNewRowColumnID = null;
-		
-		TableEntry row = getRow(rowIndex);
-		if (row==null) return;
-		
-		switch (unitColumnID)
-		{
-		case CurrentAmountUnit: row.currentAmountUnit = unit; break;
-		case GrowthRateUnit   : row.growthRateUnit    = unit; break;
-		default: break;
-		}
-		
+		setValueAt(unit, rowIndex, unitColumnID);
 		fireTableCellUpdate(rowIndex, unitColumnID);
 	}
 

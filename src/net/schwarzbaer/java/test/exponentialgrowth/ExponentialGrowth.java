@@ -3,8 +3,8 @@ package net.schwarzbaer.java.test.exponentialgrowth;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Point;
-import java.awt.Window;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,6 +21,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -69,11 +70,11 @@ public class ExponentialGrowth
 		currentfile = null;
 		selectedLength_s = null;
 		
-		mainWindow = new StandardMainWindow();
+		mainWindow = new StandardMainWindow("", this::windowIsClosing, StandardMainWindow.DefaultCloseOperation.DO_NOTHING_ON_CLOSE);
 		fileChooser = new FileChooser("Settings-File", "data");
 		
 		data = new Vector<>();
-		tableModel = new ExponentialGrowthTableModel(data);
+		tableModel = new ExponentialGrowthTableModel(data, this::notifyChangedData);
 		table = new JTable(tableModel);
 		tableModel.setTable(table);
 		table.setRowSorter(new Tables.SimplifiedRowSorter(tableModel));
@@ -85,7 +86,7 @@ public class ExponentialGrowth
 		JScrollPane tableScrollPane = new JScrollPane(table);
 		tableScrollPane.setPreferredSize(new Dimension(400,250));
 		
-		TableContextMenu contextMenu = new TableContextMenu(mainWindow, table, tableModel);
+		TableContextMenu contextMenu = new TableContextMenu();
 		contextMenu.addTo(table, () -> ContextMenu.computeSurrogateMousePos(table, tableScrollPane, tableModel.getColumn(ExponentialGrowthTableModel.ColumnID.CurrentAmount)));
 		contextMenu.addTo(tableScrollPane);
 		
@@ -103,7 +104,7 @@ public class ExponentialGrowth
 		toolBar.add(createButton("Open", e -> {
 			if (fileChooser.showOpenDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
 			{
-				loadSettings( currentfile = fileChooser.getSelectedFile() );
+				loadDataFromFile( currentfile = fileChooser.getSelectedFile() );
 				tableModel.setData(data);
 				tableModel.setEditingEnabled(true);
 				setComputedValues(null);
@@ -111,8 +112,7 @@ public class ExponentialGrowth
 			}
 		}));
 		toolBar.add(createButton("Save", e -> {
-			if (fileChooser.showSaveDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
-				saveSettings( fileChooser.getSelectedFile() );
+			saveDataToFile();
 		}));
 		toolBar.addSeparator();
 		toolBar.add(createButton("Initial Values", e->{
@@ -150,7 +150,7 @@ public class ExponentialGrowth
 		}));
 		toolBar.add(btnShowDiagram = createButton("Show Diagram", e -> {
 			if (computedValues!=null)
-				GrowthDiagramDialog.showDialog(mainWindow, computedValues);
+				GrowthDiagramDialog.showDialog(mainWindow, getDiagramTitle(), computedValues);
 		}));
 		btnShowDiagram.setEnabled(false);
 		
@@ -165,7 +165,57 @@ public class ExponentialGrowth
 		
 		AppSettings.getInstance().registerAppWindow(mainWindow);
 	}
+
+	private boolean saveDataToFile()
+	{
+		if (fileChooser.showSaveDialog(mainWindow)==JFileChooser.APPROVE_OPTION)
+		{
+			saveDataToFile( fileChooser.getSelectedFile() );
+			return true;
+		}
+		return false;
+	}
 	
+	private void windowIsClosing(WindowEvent e)
+	{
+		if (currentfile==null && !data.isEmpty())
+		{
+			boolean windowIsAllowedToClose = false;
+			while (!windowIsAllowedToClose)
+			{
+				String[] msg = {
+						"There are unsaved data.",
+						"Do you want to write it to file?"
+				};
+				String title = "Unsaved Data";
+				int result = JOptionPane.showConfirmDialog(mainWindow, msg, title, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+				
+				switch (result)
+				{
+				case JOptionPane.YES_OPTION:
+					windowIsAllowedToClose = saveDataToFile();
+					break;
+					
+				case JOptionPane.NO_OPTION:
+					windowIsAllowedToClose = true;
+					break;
+					
+				default: // Cancel or anything else (-> Cancel)
+					return;
+				}
+			}
+		}
+		
+		mainWindow.setVisible(false);
+		mainWindow.dispose();
+		System.exit(0);
+	}
+
+	private String getDiagramTitle()
+	{
+		return "Exponential Growth Diagram" + (currentfile == null ? "" : " - "+currentfile.getName());
+	}
+
 	private void updateWindowTitle()
 	{
 		mainWindow.setTitle( "Exponential Growth" + (currentfile == null ? "" : " - "+currentfile.getName()) );
@@ -250,10 +300,16 @@ public class ExponentialGrowth
 		if (simulation!=null)
 			simulation.stop();
 	}
-
-	private void loadSettings(File file)
+	
+	private void notifyChangedData()
 	{
-		System.out.printf("Read settings from file \"%s\" ...%n", file.getAbsolutePath());
+		currentfile = null;
+		updateWindowTitle();
+	}
+
+	private void loadDataFromFile(File file)
+	{
+		System.out.printf("Read data from file \"%s\" ...%n", file.getAbsolutePath());
 		data.clear();
 		
 		try (BufferedReader in = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8)))
@@ -324,9 +380,9 @@ public class ExponentialGrowth
 		return null;
 	}
 
-	private void saveSettings(File file)
+	private void saveDataToFile(File file)
 	{
-		System.out.printf("Write settings to file \"%s\" ...%n", file.getAbsolutePath());
+		System.out.printf("Write data to file \"%s\" ...%n", file.getAbsolutePath());
 		
 		try (PrintWriter out = new PrintWriter(file, StandardCharsets.UTF_8))
 		{
@@ -373,27 +429,28 @@ public class ExponentialGrowth
 		return comp;
 	}
 
-	private static class TableContextMenu extends ContextMenu
+	private class TableContextMenu extends ContextMenu
 	{
 		private static final long serialVersionUID = 8756273253569442771L;
 		
 		private TableEntry clickedRow;
 		private int clickedRowIndexM;
 
-		TableContextMenu(Window parent, JTable table, ExponentialGrowthTableModel tableModel)
+		TableContextMenu()
 		{
 			clickedRow = null;
 			clickedRowIndexM = -1;
 			
 			JMenuItem miAddAmount = add(createMenuItem("##", e->{
 				Double value = UnitValueInputDialog.showDialog(
-						parent, "Enter amount delta",
+						mainWindow, "Enter amount delta",
 						null,
 						ExpFactor.values(),
 						ExpFactor[]::new
 				);
 				if (value==null) return;
 				clickedRow.addToAmount( value );
+				notifyChangedData();
 				tableModel.fireTableRowUpdate( clickedRowIndexM );
 			}));
 			
