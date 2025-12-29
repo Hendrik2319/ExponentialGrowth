@@ -1,5 +1,6 @@
 package net.schwarzbaer.java.test.exponentialgrowth;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 import java.util.function.Function;
@@ -55,10 +56,10 @@ class ExponentialGrowthTableModel extends Tables.SimpleGetValueTableModel<TableE
 		isEditingEnabled = true;
 	}
 
-	@Override
-	public void setData(TableEntry[] data) { throw new UnsupportedOperationException(); }
+	@Override public void setData(TableEntry[] data) { throw new UnsupportedOperationException(); }
+	@Override public void setData(List<TableEntry> data) { throw new UnsupportedOperationException(); }
+	@Override public void setData(Tables.DataSource<TableEntry> data) { throw new UnsupportedOperationException(); }
 
-	@Override
 	public void setData(Vector<TableEntry> rows)
 	{
 		super.setData(this.rows = rows);
